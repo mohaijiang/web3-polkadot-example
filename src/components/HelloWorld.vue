@@ -6,40 +6,74 @@
       check out the
       <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
     </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-typescript" target="_blank" rel="noopener">typescript</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
-    </ul>
+    <div>
+      <h2>web3</h2>
+      <div>
+        <button @click="hookWeb3"> web3连接 </button>
+        <button @click="transform"> 调用转账 </button>
+      </div>
+    </div>
+    <div>
+      <h2>polkadot</h2>
+      <div>
+        <button @click="connectPolkadot"> polkadot 连接 </button>
+      </div>
+    </div>
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
+<script lang="ts" setup>
 
-export default defineComponent({
-  name: 'HelloWorld',
-  props: {
-    msg: String
+import { defineProps, ref } from 'vue'
+import { ABI } from './contract'
+import Web3 from 'web3'
+import { ApiPromise, WsProvider } from '@polkadot/api'
+
+defineProps({
+  msg: {
+    type: String,
+    required: true
   }
 })
+
+const connected = ref(false)
+
+const hookWeb3 = function () {
+  if (window.ethereum) {
+    window.ethereum.request({ method: 'eth_requestAccounts' })
+      .then(() => {
+        connected.value = true
+      })
+  } else {
+    alert('请安装MateMask')
+  }
+}
+
+const transform = async function () {
+  const web3 = new Web3(window.ethereum)
+  const accounts = await web3.eth.getAccounts()
+  console.log(accounts)
+  const contract = new web3.eth.Contract(ABI, '0x58DC15156C520cB4d18Df8807419c1989B05c960')
+
+  contract.methods.burn(1, '5Ck8UKvwPkx6ALYib5gZCQu95se6VgDMEvohfQS6gvQ4LtqQ').send({
+    from: accounts[0]
+  }).on('transactionHash', function (hash) {
+    console.log('transactionHash:', hash)
+  }).on('confirmation', function (confirmationNumber, receipt) {
+    console.log('confirmation:', confirmationNumber)
+  }).on('receipt', function (receipt) {
+    // receipt example
+    console.log('receipt:', receipt)
+  }).on('error', function (error) {
+    console.log('error:', error)
+  })
+}
+
+const connectPolkadot = function () {
+  const wsProvider = new WsProvider('wss://polkadot.authright-test.newtouch.com')
+  const api = await ApiPromise.create({ provider: wsProvider })
+}
+
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
